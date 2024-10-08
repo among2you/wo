@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Clone</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+        /* Sidebar for contacts */
+        .sidebar {
+            background-color: #075e54;
+            width: 30%;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 10px;
+            background-color: #128C7E;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .search-box {
+            padding: 10px;
+            background-color: #128C7E;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 20px;
+            border: none;
+        }
+        .contacts {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .contact {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .contact:hover {
+            background-color: #128C7E;
+        }
+        .contact img {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        .contact-info {
+            display: flex;
+            align-items: center;
+        }
+        /* Chat area */
+        .chat-area {
+            background-color: #e5ddd5;
+            width: 70%;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            background-color: #128C7E;
+            color: white;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .message {
+            margin: 10px 0;
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 10px;
+            line-height: 1.5;
+        }
+        .message.sent {
+            background-color: #dcf8c6;
+            align-self: flex-end;
+        }
+        .message.received {
+            background-color: white;
+            align-self: flex-start;
+        }
+        .message-input {
+            display: flex;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        .message-input input {
+            width: 90%;
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+        }
+        .message-input button {
+            background-color: #128C7E;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar for contacts -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>WhatsApp</h2>
+            </div>
+            <div class="search-box">
+                <input type="text" placeholder="Search contacts...">
+            </div>
+            <div class="contacts">
+                <div class="contact" id="contact1">
+                    <div class="contact-info">
+                        <img src="https://via.placeholder.com/40" alt="User 1">
+                        <p>User 1</p>
+                    </div>
+                </div>
+                <!-- Add more contacts if needed -->
+            </div>
+        </div>
+
+        <!-- Chat area -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <h3>Chat with User 1</h3>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be dynamically added here -->
+            </div>
+            <div class="message-input">
+                <input type="text" id="message-input" placeholder="Type a message...">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCo6wUYmhkvQB9cc3xS50MHUA_n2lv2z6A",
+            authDomain: "work-5857f.firebaseapp.com",
+            projectId: "work-5857f",
+            storageBucket: "work-5857f.appspot.com",
+            messagingSenderId: "543194100003",
+            appId: "1:543194100003:web:34e26f86f8a83f2bd65c96",
+            measurementId: "G-Q3V60M6SRS"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Fetch messages from Firestore in real-time
+        function fetchMessages() {
+            db.collection("messages").orderBy("timestamp").onSnapshot((snapshot) => {
+                let messages = document.getElementById("chat-messages");
+                messages.innerHTML = ""; // Clear previous messages
+                snapshot.forEach((doc) => {
+                    let messageData = doc.data();
+                    let messageDiv = document.createElement("div");
+                    messageDiv.classList.add("message");
+                    messageDiv.classList.add(messageData.sender === "user" ? "sent" : "received");
+                    messageDiv.innerHTML = `<p>${messageData.message}</p>`;
+                    messages.appendChild(messageDiv);
+                });
+                messages.scrollTop = messages.scrollHeight; // Auto scroll to the latest message
+            });
+        }
+
+        // Send message to Firestore
+        function sendMessage() {
+            let input = document.getElementById("message-input");
+            let message = input.value;
+            if (message.trim() !== "") {
+                db.collection("messages").add({
+                    message: message,
+                    sender: "user",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                input.value = ""; // Clear the input field after sending
+            }
+        }
+
+        // Load messages when the page loads
+        window.onload = fetchMessages;
+    </script>
+</body>
+</html>
