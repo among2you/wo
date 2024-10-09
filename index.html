@@ -4,211 +4,194 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Clone</title>
-    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
         body {
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+            text-align: center;
         }
-        .container {
-            display: flex;
-            height: 100vh;
-            width: 100%;
+        #chat-container {
+            display: none;
         }
-        /* Sidebar for contacts */
-        .sidebar {
-            background-color: #075e54;
-            width: 30%;
-            color: white;
-            display: flex;
-            flex-direction: column;
-        }
-        .sidebar-header {
+        #messages {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
             padding: 10px;
-            background-color: #128C7E;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .search-box {
-            padding: 10px;
-            background-color: #128C7E;
-        }
-        .search-box input {
-            width: 100%;
-            padding: 8px;
-            border-radius: 20px;
-            border: none;
-        }
-        .contacts {
-            flex-grow: 1;
-            overflow-y: auto;
-        }
-        .contact {
-            padding: 10px;
-            border-bottom: 1px solid #ccc;
-            cursor: pointer;
-        }
-        .contact:hover {
-            background-color: #128C7E;
-        }
-        .contact img {
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            margin-right: 10px;
-        }
-        .contact-info {
-            display: flex;
-            align-items: center;
-        }
-        /* Chat area */
-        .chat-area {
-            background-color: #e5ddd5;
-            width: 70%;
-            display: flex;
-            flex-direction: column;
-        }
-        .chat-header {
-            background-color: #128C7E;
-            color: white;
-            padding: 10px;
-            display: flex;
-            align-items: center;
-        }
-        .chat-messages {
-            flex-grow: 1;
-            padding: 20px;
-            overflow-y: auto;
+            margin-bottom: 10px;
         }
         .message {
-            margin: 10px 0;
-            max-width: 70%;
-            padding: 10px;
-            border-radius: 10px;
-            line-height: 1.5;
+            text-align: left;
+            margin: 5px;
         }
-        .message.sent {
-            background-color: #dcf8c6;
-            align-self: flex-end;
-        }
-        .message.received {
-            background-color: white;
-            align-self: flex-start;
-        }
-        .message-input {
-            display: flex;
-            padding: 10px;
-            background-color: #f0f0f0;
-        }
-        .message-input input {
-            width: 90%;
-            padding: 10px;
-            border: none;
-            border-radius: 20px;
-        }
-        .message-input button {
-            background-color: #128C7E;
-            color: white;
-            padding: 10px;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            margin-left: 10px;
+        .message.self {
+            text-align: right;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Sidebar for contacts -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>WhatsApp</h2>
-            </div>
-            <div class="search-box">
-                <input type="text" placeholder="Search contacts...">
-            </div>
-            <div class="contacts">
-                <div class="contact" id="contact1">
-                    <div class="contact-info">
-                        <img src="https://via.placeholder.com/40" alt="User 1">
-                        <p>User 1</p>
-                    </div>
-                </div>
-                <!-- Add more contacts if needed -->
-            </div>
-        </div>
 
-        <!-- Chat area -->
-        <div class="chat-area">
-            <div class="chat-header">
-                <h3>Chat with User 1</h3>
-            </div>
-            <div class="chat-messages" id="chat-messages">
-                <!-- Messages will be dynamically added here -->
-            </div>
-            <div class="message-input">
-                <input type="text" id="message-input" placeholder="Type a message...">
-                <button onclick="sendMessage()">Send</button>
-            </div>
-        </div>
+    <h1>WhatsApp Clone</h1>
+
+    <!-- Google Sign-In Button -->
+    <div id="login-container">
+        <button onclick="signInWithGoogle()">Login with Google</button>
     </div>
+
+    <!-- Create Username -->
+    <div id="username-container" style="display:none;">
+        <h2>Create a Username</h2>
+        <input type="text" id="usernameInput" placeholder="Enter a unique username">
+        <button onclick="setUsername()">Set Username</button>
+    </div>
+
+    <!-- Chat System -->
+    <div id="chat-container">
+        <h2>Chat with: <span id="friendUsernameDisplay"></span></h2>
+        <input type="text" id="friendUsernameInput" placeholder="Enter friend's username">
+        <button onclick="startChat()">Start Chat</button>
+
+        <div id="messages"></div>
+
+        <input type="text" id="messageInput" placeholder="Type your message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-auth.js"></script>
 
     <script>
         // Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyCo6wUYmhkvQB9cc3xS50MHUA_n2lv2z6A",
-            authDomain: "work-5857f.firebaseapp.com",
-            projectId: "work-5857f",
-            storageBucket: "work-5857f.appspot.com",
-            messagingSenderId: "543194100003",
-            appId: "1:543194100003:web:34e26f86f8a83f2bd65c96",
-            measurementId: "G-Q3V60M6SRS"
+          apiKey: "AIzaSyCo6wUYmhkvQB9cc3xS50MHUA_n2lv2z6A",
+          authDomain: "work-5857f.firebaseapp.com",
+          projectId: "work-5857f",
+          storageBucket: "work-5857f.appspot.com",
+          messagingSenderId: "543194100003",
+          appId: "1:543194100003:web:34e26f86f8a83f2bd65c96",
+          measurementId: "G-Q3V60M6SRS"
         };
 
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
 
-        // Fetch messages from Firestore in real-time
-        function fetchMessages() {
-            db.collection("messages").orderBy("timestamp").onSnapshot((snapshot) => {
-                let messages = document.getElementById("chat-messages");
-                messages.innerHTML = ""; // Clear previous messages
-                snapshot.forEach((doc) => {
-                    let messageData = doc.data();
-                    let messageDiv = document.createElement("div");
-                    messageDiv.classList.add("message");
-                    messageDiv.classList.add(messageData.sender === "user" ? "sent" : "received");
-                    messageDiv.innerHTML = `<p>${messageData.message}</p>`;
-                    messages.appendChild(messageDiv);
+        let currentUser = null;
+        let currentUsername = null;
+        let friendUsername = null;
+
+        // Function to Sign in with Google
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    currentUser = result.user;
+                    document.getElementById("login-container").style.display = "none";
+                    checkUsername();
+                })
+                .catch((error) => {
+                    console.error("Error signing in with Google: ", error);
                 });
-                messages.scrollTop = messages.scrollHeight; // Auto scroll to the latest message
-            });
         }
 
-        // Send message to Firestore
-        function sendMessage() {
-            let input = document.getElementById("message-input");
-            let message = input.value;
-            if (message.trim() !== "") {
-                db.collection("messages").add({
-                    message: message,
-                    sender: "user",
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        // Function to check if the user has a username
+        function checkUsername() {
+            db.collection("users").doc(currentUser.uid).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        currentUsername = doc.data().username;
+                        startChatUI();
+                    } else {
+                        document.getElementById("username-container").style.display = "block";
+                    }
                 });
-                input.value = ""; // Clear the input field after sending
+        }
+
+        // Function to set a unique username
+        function setUsername() {
+            const username = document.getElementById("usernameInput").value;
+            if (username === "") {
+                alert("Please enter a username.");
+                return;
             }
+
+            // Check if username already exists
+            db.collection("users").where("username", "==", username).get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        // Save username
+                        db.collection("users").doc(currentUser.uid).set({
+                            username: username
+                        }).then(() => {
+                            currentUsername = username;
+                            document.getElementById("username-container").style.display = "none";
+                            startChatUI();
+                        });
+                    } else {
+                        alert("Username already taken. Please choose another.");
+                    }
+                });
         }
 
-        // Load messages when the page loads
-        window.onload = fetchMessages;
+        // Function to start the chat UI
+        function startChatUI() {
+            document.getElementById("chat-container").style.display = "block";
+        }
+
+        // Function to start chat with a friend
+        function startChat() {
+            friendUsername = document.getElementById("friendUsernameInput").value;
+            if (friendUsername === "") {
+                alert("Please enter a friend's username.");
+                return;
+            }
+
+            document.getElementById("friendUsernameDisplay").innerText = friendUsername;
+            loadMessages();
+        }
+
+        // Function to load messages between the current user and friend
+        function loadMessages() {
+            const chatId = [currentUsername, friendUsername].sort().join("_");
+
+            db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp")
+                .onSnapshot((snapshot) => {
+                    const messagesContainer = document.getElementById("messages");
+                    messagesContainer.innerHTML = "";
+
+                    snapshot.forEach((doc) => {
+                        const messageData = doc.data();
+                        const messageDiv = document.createElement("div");
+                        messageDiv.classList.add("message");
+                        if (messageData.sender === currentUsername) {
+                            messageDiv.classList.add("self");
+                        }
+                        messageDiv.innerText = `${messageData.sender}: ${messageData.message}`;
+                        messagesContainer.appendChild(messageDiv);
+                    });
+
+                    // Scroll to the bottom
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                });
+        }
+
+        // Function to send a message
+        function sendMessage() {
+            const messageInput = document.getElementById("messageInput").value;
+            if (messageInput === "") return;
+
+            const chatId = [currentUsername, friendUsername].sort().join("_");
+
+            db.collection("chats").doc(chatId).collection("messages").add({
+                message: messageInput,
+                sender: currentUsername,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+
+            document.getElementById("messageInput").value = "";
+        }
     </script>
+
 </body>
 </html>
